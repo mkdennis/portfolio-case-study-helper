@@ -1,0 +1,20 @@
+{
+  "id": "item-upload-redesign",
+  "name": "Item Upload Redesign",
+  "role": "Lead Product Designer",
+  "timeframe": {
+    "start": "2026-01-20",
+    "end": null,
+    "status": "in-progress"
+  },
+  "problemSpace": "Item Upload is a huge pain point",
+  "constraints": {
+    "team": "1 designer, 1 product manager, 1 pmk, 1 supply, team of 3 engineers",
+    "timeline": "",
+    "scope": "",
+    "technical": ""
+  },
+  "tags": [],
+  "createdAt": "2026-01-20T22:18:56.454Z",
+  "updatedAt": "2026-01-20T22:18:56.454Z"
+}
