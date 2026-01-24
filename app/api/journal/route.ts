@@ -87,17 +87,19 @@ export async function POST(request: NextRequest) {
       date,
       tags = [],
       assets = [],
-      decision,
-      why,
-      milestone,
-      change,
-      tradeoff,
-      feedback,
+      text,
     } = body;
 
     if (!projectSlug || !date) {
       return NextResponse.json(
         { error: "projectSlug and date are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!text || !text.trim()) {
+      return NextResponse.json(
+        { error: "Journal entry text is required" },
         { status: 400 }
       );
     }
@@ -109,28 +111,9 @@ export async function POST(request: NextRequest) {
       assets,
     };
 
-    let content = "";
+    const content = text.trim();
 
-    if (decision) {
-      content += `## What decision did you make today?\n${decision}\n\n`;
-    }
-    if (why) {
-      content += `## Why did you make this decision?\n${why}\n\n`;
-    }
-    if (milestone) {
-      content += `## What milestone did you hit?\n${milestone}\n\n`;
-    }
-    if (change) {
-      content += `## What changed from before?\n${change}\n\n`;
-    }
-    if (tradeoff) {
-      content += `## What tradeoff came up?\n${tradeoff}\n\n`;
-    }
-    if (feedback) {
-      content += `## What feedback influenced your work?\n${feedback}\n\n`;
-    }
-
-    const markdown = matter.stringify(content.trim(), frontmatter);
+    const markdown = matter.stringify(content, frontmatter);
 
     // Check if entry already exists
     const existingContent = await getFileContent(
@@ -191,7 +174,8 @@ export async function POST(request: NextRequest) {
 function extractContent(markdown: string): JournalEntry["content"] {
   const content: JournalEntry["content"] = {};
 
-  const sections = [
+  // Check for legacy section headers
+  const legacySections = [
     { pattern: /##\s*(?:What\s+)?decision[^\n]*\n([\s\S]*?)(?=##|$)/i, key: "decision" },
     { pattern: /##\s*(?:Why|Why\s+did)[^\n]*\n([\s\S]*?)(?=##|$)/i, key: "why" },
     { pattern: /##\s*(?:What\s+)?milestone[^\n]*\n([\s\S]*?)(?=##|$)/i, key: "milestone" },
@@ -200,11 +184,18 @@ function extractContent(markdown: string): JournalEntry["content"] {
     { pattern: /##\s*(?:What\s+)?feedback[^\n]*\n([\s\S]*?)(?=##|$)/i, key: "feedback" },
   ];
 
-  for (const { pattern, key } of sections) {
+  let hasLegacyContent = false;
+  for (const { pattern, key } of legacySections) {
     const match = markdown.match(pattern);
     if (match && match[1]) {
       content[key as keyof typeof content] = match[1].trim();
+      hasLegacyContent = true;
     }
+  }
+
+  // If no legacy sections found, treat the whole content as text
+  if (!hasLegacyContent && markdown.trim()) {
+    content.text = markdown.trim();
   }
 
   return content;

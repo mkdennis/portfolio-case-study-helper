@@ -26,6 +26,8 @@ export interface JournalEntry {
   tags: string[];
   assets: string[];
   content: {
+    text?: string;
+    // Legacy fields for backward compatibility with existing entries
     decision?: string;
     why?: string;
     milestone?: string;
@@ -101,17 +103,6 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
-// Journal prompts
-export const JOURNAL_PROMPTS = [
-  { key: "decision", label: "What decision did you make today?", placeholder: "Describe a key design decision you made..." },
-  { key: "why", label: "Why did you make this decision?", placeholder: "Explain the reasoning behind your decision..." },
-  { key: "milestone", label: "What milestone did you hit or move closer to?", placeholder: "Share progress on your project goals..." },
-  { key: "change", label: "What changed from the previous iteration?", placeholder: "Describe what's different from before..." },
-  { key: "tradeoff", label: "What tradeoff or tension came up?", placeholder: "What compromises did you navigate..." },
-  { key: "feedback", label: "What feedback influenced today's work?", placeholder: "Share feedback that shaped your decisions..." },
-] as const;
-
-export type JournalPromptKey = typeof JOURNAL_PROMPTS[number]["key"];
 
 // Tag types
 export const ENTRY_TAGS = ["decision", "milestone", "iteration", "feedback", "insight", "blocker"] as const;

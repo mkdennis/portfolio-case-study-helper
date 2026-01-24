@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -10,9 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/layout/header";
-import { ArrowLeft, Loader2, X } from "lucide-react";
+import { ArrowLeft, Loader2, X, Upload, Image as ImageIcon } from "lucide-react";
 import { toast } from "sonner";
-import { JOURNAL_PROMPTS, ENTRY_TAGS, type EntryTag } from "@/types";
+import { ENTRY_TAGS, type EntryTag } from "@/types";
 
 export default function NewJournalEntryPage({
   params,
@@ -26,7 +26,12 @@ export default function NewJournalEntryPage({
   // Form state
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [tags, setTags] = useState<EntryTag[]>([]);
-  const [responses, setResponses] = useState<Record<string, string>>({});
+  const [text, setText] = useState("");
+
+  // Image state
+  const [isDragging, setIsDragging] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   function toggleTag(tag: EntryTag) {
     setTags((prev) =>
@@ -34,19 +39,98 @@ export default function NewJournalEntryPage({
     );
   }
 
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setIsDragging(true);
+    } else if (e.type === "dragleave") {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      handleImageFile(files[0]);
+    }
+  }, []);
+
+  const handleFileInput = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files && files[0]) {
+        handleImageFile(files[0]);
+      }
+    },
+    []
+  );
+
+  function handleImageFile(file: File) {
+    const allowedTypes = ["image/png", "image/jpeg", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Invalid file type. Allowed: PNG, JPG, GIF");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Maximum size is 10MB");
+      return;
+    }
+
+    setImageFile(file);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeImage() {
+    setImageFile(null);
+    setImagePreview(null);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    // Check if at least one response is filled
-    const hasContent = Object.values(responses).some((v) => v.trim());
-    if (!hasContent) {
-      toast.error("Please fill in at least one prompt");
+    if (!text.trim()) {
+      toast.error("Please write something in your journal entry");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      let uploadedAssetFilename: string | undefined;
+
+      // Upload image first if present
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("file", imageFile);
+        formData.append("projectSlug", slug);
+        formData.append("role", "other");
+
+        const assetRes = await fetch("/api/assets", {
+          method: "POST",
+          body: formData,
+        });
+
+        const assetResult = await assetRes.json();
+
+        if (!assetRes.ok) {
+          throw new Error(assetResult.error || "Failed to upload image");
+        }
+
+        uploadedAssetFilename = assetResult.asset.filename;
+      }
+
+      // Save journal entry
       const res = await fetch("/api/journal", {
         method: "POST",
         headers: {
@@ -56,7 +140,8 @@ export default function NewJournalEntryPage({
           projectSlug: slug,
           date,
           tags,
-          ...responses,
+          text,
+          assets: uploadedAssetFilename ? [uploadedAssetFilename] : [],
         }),
       });
 
@@ -131,25 +216,86 @@ export default function NewJournalEntryPage({
                   </div>
                 </div>
 
-                {/* Prompts */}
-                <div className="space-y-6">
-                  {JOURNAL_PROMPTS.map((prompt) => (
-                    <div key={prompt.key} className="space-y-2">
-                      <Label htmlFor={prompt.key}>{prompt.label}</Label>
-                      <Textarea
-                        id={prompt.key}
-                        placeholder={prompt.placeholder}
-                        value={responses[prompt.key] || ""}
-                        onChange={(e) =>
-                          setResponses((prev) => ({
-                            ...prev,
-                            [prompt.key]: e.target.value,
-                          }))
-                        }
-                        className="min-h-24"
+                {/* Journal Entry */}
+                <div className="space-y-2">
+                  <Label htmlFor="text">Journal Entry</Label>
+                  <Textarea
+                    id="text"
+                    placeholder="What happened today? Decisions made, milestones hit, challenges faced..."
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    className="min-h-40"
+                  />
+                </div>
+
+                {/* Image Upload */}
+                <div className="space-y-2">
+                  <Label>Image (optional)</Label>
+                  {!imageFile ? (
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                        isDragging
+                          ? "border-primary bg-primary/5"
+                          : "border-muted-foreground/25 hover:border-muted-foreground/50"
+                      }`}
+                      onDragEnter={handleDrag}
+                      onDragLeave={handleDrag}
+                      onDragOver={handleDrag}
+                      onDrop={handleDrop}
+                    >
+                      <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Drag and drop an image, or click to select
+                      </p>
+                      <input
+                        type="file"
+                        id="image-upload"
+                        className="hidden"
+                        accept="image/png,image/jpeg,image/gif"
+                        onChange={handleFileInput}
                       />
+                      <label htmlFor="image-upload">
+                        <Button type="button" variant="secondary" size="sm" asChild>
+                          <span>Select Image</span>
+                        </Button>
+                      </label>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="border rounded-lg p-4">
+                      <div className="flex gap-4">
+                        <div className="w-24 h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                          {imagePreview ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={imagePreview}
+                              alt="Preview"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{imageFile.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {(imageFile.size / 1024).toFixed(1)} KB
+                          </p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={removeImage}
+                            className="mt-2"
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Submit */}
