@@ -22,6 +22,7 @@ import {
   PenLine,
   Sparkles,
   Layers,
+  FileEdit,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { ProjectMetadata, JournalEntry, AssetMetadata, CaseStudySection } from "@/types";
@@ -167,6 +168,12 @@ export default function ProjectPage({
         </div>
         {/* Action buttons - hidden on mobile, shown in bottom nav instead */}
         <div className="hidden sm:flex gap-2">
+          <Link href={`/projects/${slug}/working`}>
+            <Button variant="outline">
+              <FileEdit className="mr-2 h-4 w-4" />
+              Working Draft
+            </Button>
+          </Link>
           <Link href={`/projects/${slug}/case-study`}>
             <Button variant="outline">
               <Sparkles className="mr-2 h-4 w-4" />

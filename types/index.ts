@@ -150,3 +150,65 @@ export interface CaseStudyState {
   orderedIds: string[];
   itemsMap: Map<string, TimelineItem>;
 }
+
+// Working case study document types
+export const WORKING_DOCUMENT_SECTIONS = [
+  "overview",
+  "problem",
+  "research",
+  "process",
+  "iterations",
+  "results",
+  "reflection",
+] as const;
+export type WorkingDocumentSection = typeof WORKING_DOCUMENT_SECTIONS[number];
+
+export const WORKING_DOCUMENT_SECTION_LABELS: Record<WorkingDocumentSection, string> = {
+  overview: "Overview",
+  problem: "Problem Statement",
+  research: "Research & Discovery",
+  process: "Design Process",
+  iterations: "Iterations & Refinement",
+  results: "Results & Impact",
+  reflection: "Reflection",
+};
+
+export const WORKING_DOCUMENT_SECTION_PROMPTS: Record<WorkingDocumentSection, string> = {
+  overview: "What is this project about? Who is it for?",
+  problem: "What problem were you trying to solve? What was the pain point?",
+  research: "What did you learn from research? Who did you talk to?",
+  process: "How did you approach the design? What methods did you use?",
+  iterations: "How did the design evolve? What changed and why?",
+  results: "What was the outcome? How did you measure success?",
+  reflection: "What did you learn? What would you do differently?",
+};
+
+export interface WorkingDocumentSectionData {
+  content: string;
+  updatedAt: string;
+}
+
+export interface WorkingDocument {
+  projectId: string;
+  sections: Record<WorkingDocumentSection, WorkingDocumentSectionData>;
+  wordGoal: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// AI writing assistance types
+export interface AISuggestion {
+  id: string;
+  type: "question" | "suggestion" | "reference";
+  content: string;
+  source?: string;
+  accepted?: boolean;
+}
+
+export interface AIWritingAssistantState {
+  isOpen: boolean;
+  section: WorkingDocumentSection | null;
+  isLoading: boolean;
+  suggestions: AISuggestion[];
+  questions: string[];
+}
