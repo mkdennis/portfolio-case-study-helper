@@ -21,6 +21,7 @@ import {
   Image as ImageIcon,
   PenLine,
   Sparkles,
+  Layers,
 } from "lucide-react";
 import { format } from "date-fns";
 import type { ProjectMetadata, JournalEntry, AssetMetadata, CaseStudySection } from "@/types";
@@ -306,39 +307,7 @@ export default function ProjectPage({
         </CardContent>
       </Card>
 
-      {/* Case Study Sections */}
-      <div className="space-y-4 mb-6 sm:mb-8">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg sm:text-xl font-semibold">Case Study Sections</h2>
-          <span className="text-sm text-muted-foreground">
-            {completedCount} of {TRACKABLE_SECTIONS.length} complete
-          </span>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="h-2 bg-muted rounded-full overflow-hidden">
-          <div
-            className="h-full bg-green-500 transition-all duration-300"
-            style={{ width: `${TRACKABLE_SECTIONS.length > 0 ? (completedCount / TRACKABLE_SECTIONS.length) * 100 : 0}%` }}
-          />
-        </div>
-
-        <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
-          {CASE_STUDY_SECTIONS.map((section) => (
-            <SectionCard
-              key={section}
-              section={section}
-              entries={getEntriesForSection(section)}
-              assets={getAssetsForSection(section)}
-              projectSlug={slug}
-              isComplete={completedSections.has(section)}
-              onToggleComplete={() => toggleSectionComplete(section)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Tabs for Journal, Assets, and Timeline */}
+      {/* Tabs for Journal, Assets, Timeline, and Sections */}
       <Tabs defaultValue="journal" className="space-y-4">
         <TabsList className="w-full sm:w-auto overflow-x-auto scrollbar-hide">
           <TabsTrigger value="journal" className="gap-1.5 sm:gap-2 min-w-fit">
@@ -352,6 +321,10 @@ export default function ProjectPage({
           <TabsTrigger value="timeline" className="gap-1.5 sm:gap-2 min-w-fit">
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">Timeline</span>
+          </TabsTrigger>
+          <TabsTrigger value="sections" className="gap-1.5 sm:gap-2 min-w-fit">
+            <Layers className="h-4 w-4" />
+            <span className="hidden sm:inline">Sections</span>
           </TabsTrigger>
         </TabsList>
 
@@ -375,6 +348,39 @@ export default function ProjectPage({
             assets={assets}
             projectSlug={slug}
           />
+        </TabsContent>
+
+        <TabsContent value="sections">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg sm:text-xl font-semibold">Case Study Sections</h2>
+              <span className="text-sm text-muted-foreground">
+                {completedCount} of {TRACKABLE_SECTIONS.length} complete
+              </span>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-green-500 transition-all duration-300"
+                style={{ width: `${TRACKABLE_SECTIONS.length > 0 ? (completedCount / TRACKABLE_SECTIONS.length) * 100 : 0}%` }}
+              />
+            </div>
+
+            <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
+              {CASE_STUDY_SECTIONS.map((section) => (
+                <SectionCard
+                  key={section}
+                  section={section}
+                  entries={getEntriesForSection(section)}
+                  assets={getAssetsForSection(section)}
+                  projectSlug={slug}
+                  isComplete={completedSections.has(section)}
+                  onToggleComplete={() => toggleSectionComplete(section)}
+                />
+              ))}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </main>
