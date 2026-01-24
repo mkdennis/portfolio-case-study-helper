@@ -62,12 +62,12 @@ export function VoiceMicButton({
     >
       {isListening ? (
         <>
-          <div className="flex items-center gap-0.5 h-4">
-            <span className="voice-wave-bar w-0.5 bg-current rounded-full animate-voice-wave-1" />
-            <span className="voice-wave-bar w-0.5 bg-current rounded-full animate-voice-wave-2" />
-            <span className="voice-wave-bar w-0.5 bg-current rounded-full animate-voice-wave-3" />
-            <span className="voice-wave-bar w-0.5 bg-current rounded-full animate-voice-wave-4" />
-            <span className="voice-wave-bar w-0.5 bg-current rounded-full animate-voice-wave-5" />
+          <div className="flex items-center gap-1 h-3.5">
+            <span className="voice-wave-bar w-1 bg-white rounded-full animate-voice-wave-1" />
+            <span className="voice-wave-bar w-1 bg-white rounded-full animate-voice-wave-2" />
+            <span className="voice-wave-bar w-1 bg-white rounded-full animate-voice-wave-3" />
+            <span className="voice-wave-bar w-1 bg-white rounded-full animate-voice-wave-4" />
+            <span className="voice-wave-bar w-1 bg-white rounded-full animate-voice-wave-5" />
           </div>
           <span className="text-sm font-medium whitespace-nowrap">
             Start Speaking

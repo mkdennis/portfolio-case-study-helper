@@ -187,12 +187,12 @@
     height: 4px;
   }
   50% {
-    height: 16px;
+    height: 14px;
   }
 }
 
 .voice-wave-bar {
-  min-height: 4px;
+  height: 4px;
 }
 
 .animate-voice-wave-1 {

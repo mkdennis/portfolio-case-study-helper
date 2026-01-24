@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Loader2, X, Upload, Image as ImageIcon } from "lucide-react";
+import { VoiceMicButton } from "@/components/ui/voice-mic-button";
 import { toast } from "sonner";
 import { ENTRY_TAGS, CASE_STUDY_SECTIONS, CASE_STUDY_SECTION_LABELS, type EntryTag, type CaseStudySection } from "@/types";
 import {
@@ -255,13 +256,26 @@ export default function NewJournalEntryPage({
               {/* Journal Entry */}
               <div className="space-y-2">
                 <Label htmlFor="text">Journal Entry</Label>
-                <Textarea
-                  id="text"
-                  placeholder="What happened today? Decisions made, milestones hit, challenges faced..."
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  className="min-h-40"
-                />
+                <div className="relative">
+                  <Textarea
+                    id="text"
+                    placeholder="What happened today? Decisions made, milestones hit, challenges faced..."
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    className="min-h-40 pb-14"
+                  />
+                  <div className="absolute bottom-3 right-3">
+                    <VoiceMicButton
+                      onTranscript={(transcript) => {
+                        setText((prev) => {
+                          const separator = prev.trim() ? " " : "";
+                          return prev + separator + transcript;
+                        });
+                      }}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Image Upload */}
