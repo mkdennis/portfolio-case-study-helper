@@ -11,7 +11,7 @@ import type { ProjectMetadata, JournalEntry, AssetMetadata } from "@/types";
 import {
   CaseStudyProvider,
   CaseStudyLayout,
-  SelectableTimeline,
+  OutlinePanel,
   HTMLPreview,
 } from "@/components/case-study";
 
@@ -110,7 +110,7 @@ export default function CaseStudyPage({
 
       <CaseStudyProvider>
         <CaseStudyLayout>
-          <SelectableTimeline entries={entries} assets={assets} />
+          <OutlinePanel entries={entries} assets={assets} project={project} />
           <HTMLPreview project={project} />
         </CaseStudyLayout>
       </CaseStudyProvider>

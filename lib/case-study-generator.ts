@@ -3,6 +3,7 @@ import type {
   TimelineItem,
   JournalEntry,
   AssetMetadata,
+  CaseStudySection,
 } from "@/types";
 import { format } from "date-fns";
 
@@ -17,83 +18,107 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (m) => map[m]);
 }
 
-function renderJournalEntry(entry: JournalEntry): string {
-  const parts: string[] = [];
-
-  parts.push(`<div class="entry">`);
-  parts.push(
-    `<h3>${format(new Date(entry.date), "MMMM d, yyyy")}</h3>`
+function getJournalContent(entry: JournalEntry): string {
+  return (
+    entry.content.text ||
+    entry.content.decision ||
+    entry.content.milestone ||
+    entry.content.change ||
+    entry.content.feedback ||
+    ""
   );
-
-  if (entry.content.text) {
-    parts.push(`<p>${escapeHtml(entry.content.text)}</p>`);
-  }
-
-  if (entry.content.decision) {
-    parts.push(
-      `<blockquote><strong>Decision:</strong> ${escapeHtml(entry.content.decision)}</blockquote>`
-    );
-  }
-
-  if (entry.content.why) {
-    parts.push(`<p><em>Why:</em> ${escapeHtml(entry.content.why)}</p>`);
-  }
-
-  if (entry.content.milestone) {
-    parts.push(
-      `<p><strong>Milestone:</strong> ${escapeHtml(entry.content.milestone)}</p>`
-    );
-  }
-
-  if (entry.content.tradeoff) {
-    parts.push(
-      `<p><strong>Tradeoff:</strong> ${escapeHtml(entry.content.tradeoff)}</p>`
-    );
-  }
-
-  if (entry.tags.length > 0) {
-    parts.push(
-      `<div class="tags">${entry.tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>`
-    );
-  }
-
-  parts.push(`</div>`);
-
-  return parts.join("\n");
 }
 
-function renderAsset(asset: AssetMetadata & { url: string }): string {
-  return `
-    <figure>
-      <img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.altText || asset.filename)}" />
-      <figcaption>${escapeHtml(asset.altText || asset.filename)} <span class="tag">${escapeHtml(asset.role)}</span></figcaption>
-    </figure>
-  `;
+function generateNarrativeSection(
+  sectionName: string,
+  items: TimelineItem[],
+  sectionIntro: string
+): string {
+  if (items.length === 0) return "";
+
+  const journalEntries = items.filter((item) => item.type === "journal");
+  const assets = items.filter((item) => item.type === "asset");
+
+  const parts: string[] = [];
+  parts.push(`<section class="section">`);
+  parts.push(`<h2>${escapeHtml(sectionName)}</h2>`);
+  parts.push(`<p>${escapeHtml(sectionIntro)}</p>`);
+
+  // Weave journal content into narrative paragraphs
+  for (const item of journalEntries) {
+    const entry = item.data as JournalEntry;
+    const content = getJournalContent(entry);
+    if (content) {
+      parts.push(`<p>${escapeHtml(content)}</p>`);
+
+      if (entry.content.why) {
+        parts.push(`<p>${escapeHtml(entry.content.why)}</p>`);
+      }
+
+      if (entry.content.tradeoff) {
+        parts.push(
+          `<blockquote>${escapeHtml(entry.content.tradeoff)}</blockquote>`
+        );
+      }
+    }
+  }
+
+  // Add images with captions
+  for (const item of assets) {
+    const asset = item.data as AssetMetadata & { url: string };
+    parts.push(`
+      <figure>
+        <img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.altText || asset.filename)}" />
+        <figcaption>${escapeHtml(asset.altText || asset.filename)}</figcaption>
+      </figure>
+    `);
+  }
+
+  parts.push(`</section>`);
+  return parts.join("\n");
 }
 
 export function generateCaseStudyHTML(
   project: ProjectMetadata,
-  items: TimelineItem[]
+  sectionItems: Map<CaseStudySection, TimelineItem[]>
 ): string {
-  const sections: string[] = [];
+  const htmlSections: string[] = [];
 
-  // Title section
+  // Gather all items for context
+  const allItems = Array.from(sectionItems.values()).flat();
+  const researchItems = sectionItems.get("research") || [];
+  const processItems = sectionItems.get("process") || [];
+  const iterationItems = sectionItems.get("iterations") || [];
+  const resultsItems = sectionItems.get("final-results") || [];
+  const allNotesItems = sectionItems.get("all") || [];
+
+  // Calculate project duration
+  const startDate = new Date(project.timeframe.start);
   const endDate = project.timeframe.end
+    ? new Date(project.timeframe.end)
+    : new Date();
+  const durationWeeks = Math.ceil(
+    (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 7)
+  );
+
+  const endDateStr = project.timeframe.end
     ? format(new Date(project.timeframe.end), "MMMM yyyy")
     : "Present";
 
-  sections.push(`
-    <header class="section">
+  // Title and Introduction
+  htmlSections.push(`
+    <header class="hero">
       <h1>${escapeHtml(project.name)}</h1>
-      <p class="meta">${escapeHtml(project.role)} | ${format(new Date(project.timeframe.start), "MMMM yyyy")} - ${endDate}</p>
+      <p class="meta">${escapeHtml(project.role)} &bull; ${format(startDate, "MMMM yyyy")} &ndash; ${endDateStr}</p>
     </header>
   `);
 
-  // Problem statement
-  sections.push(`
+  // Overview / Executive Summary
+  htmlSections.push(`
     <section class="section">
-      <h2>The Challenge</h2>
+      <h2>Overview</h2>
       <p>${escapeHtml(project.problemSpace)}</p>
+      <p>Over the course of ${durationWeeks} weeks, I led the design effort to address this challenge, working through research, iteration, and validation to deliver a solution that improved the user experience.</p>
     </section>
   `);
 
@@ -105,54 +130,98 @@ export function generateCaseStudyHTML(
     project.constraints.technical;
 
   if (hasConstraints) {
-    const constraintItems: string[] = [];
+    const constraintParts: string[] = [];
     if (project.constraints.team) {
-      constraintItems.push(
-        `<li><strong>Team:</strong> ${escapeHtml(project.constraints.team)}</li>`
-      );
+      constraintParts.push(project.constraints.team);
     }
     if (project.constraints.timeline) {
-      constraintItems.push(
-        `<li><strong>Timeline:</strong> ${escapeHtml(project.constraints.timeline)}</li>`
-      );
+      constraintParts.push(project.constraints.timeline);
     }
     if (project.constraints.scope) {
-      constraintItems.push(
-        `<li><strong>Scope:</strong> ${escapeHtml(project.constraints.scope)}</li>`
-      );
+      constraintParts.push(project.constraints.scope);
     }
     if (project.constraints.technical) {
-      constraintItems.push(
-        `<li><strong>Technical:</strong> ${escapeHtml(project.constraints.technical)}</li>`
-      );
+      constraintParts.push(project.constraints.technical);
     }
 
-    sections.push(`
+    htmlSections.push(`
       <section class="section">
-        <h2>Constraints</h2>
+        <h2>Constraints & Context</h2>
+        <p>This project came with several important constraints that shaped our approach:</p>
         <ul>
-          ${constraintItems.join("\n          ")}
+          ${constraintParts.map((c) => `<li>${escapeHtml(c)}</li>`).join("\n          ")}
         </ul>
       </section>
     `);
   }
 
-  // Process section from selected items
-  if (items.length > 0) {
-    sections.push(`<section class="section"><h2>The Process</h2>`);
-
-    for (const item of items) {
-      if (item.type === "journal") {
-        sections.push(renderJournalEntry(item.data));
-      } else {
-        sections.push(renderAsset(item.data));
-      }
-    }
-
-    sections.push(`</section>`);
+  // Research section
+  if (researchItems.length > 0) {
+    htmlSections.push(
+      generateNarrativeSection(
+        "Research & Discovery",
+        researchItems,
+        "Understanding the problem space was critical before jumping into solutions. Here's what we learned:"
+      )
+    );
   }
 
-  return sections.join("\n");
+  // Process section
+  if (processItems.length > 0) {
+    htmlSections.push(
+      generateNarrativeSection(
+        "Design Process",
+        processItems,
+        "With a clearer understanding of the problem, I began exploring potential solutions:"
+      )
+    );
+  }
+
+  // Iterations section
+  if (iterationItems.length > 0) {
+    htmlSections.push(
+      generateNarrativeSection(
+        "Iterations & Refinement",
+        iterationItems,
+        "Design is never linear. Through testing and feedback, we refined our approach:"
+      )
+    );
+  }
+
+  // All notes section (uncategorized)
+  if (allNotesItems.length > 0) {
+    htmlSections.push(
+      generateNarrativeSection(
+        "Additional Notes",
+        allNotesItems,
+        "Other important moments from the project:"
+      )
+    );
+  }
+
+  // Results section
+  if (resultsItems.length > 0) {
+    htmlSections.push(
+      generateNarrativeSection(
+        "Results & Impact",
+        resultsItems,
+        "The final solution delivered measurable improvements:"
+      )
+    );
+  }
+
+  // Reflection / Conclusion
+  if (allItems.length > 0) {
+    htmlSections.push(`
+      <section class="section">
+        <h2>Reflection</h2>
+        <p>This project reinforced the importance of understanding user needs before committing to solutions. The iterative approach allowed us to validate assumptions early and course-correct when needed.</p>
+        <p>Key takeaways from this project include the value of cross-functional collaboration, the importance of testing with real users, and the need to balance ideal solutions with practical constraints.</p>
+      </section>
+    `);
+  }
+
+  return htmlSections.join("\n");
 }
 
 export function generateFullHTMLDocument(
@@ -170,102 +239,90 @@ export function generateFullHTMLDocument(
       box-sizing: border-box;
     }
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      line-height: 1.6;
-      max-width: 800px;
+      font-family: 'Georgia', 'Times New Roman', serif;
+      line-height: 1.8;
+      max-width: 720px;
       margin: 0 auto;
-      padding: 2rem;
-      color: #1a1a1a;
+      padding: 3rem 2rem;
+      color: #2c2c2c;
       background: #fff;
+    }
+    .hero {
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid #e0e0e0;
     }
     h1 {
       font-size: 2.5rem;
       margin-bottom: 0.5rem;
       font-weight: 700;
+      letter-spacing: -0.02em;
     }
     h2 {
-      font-size: 1.75rem;
-      margin-top: 2rem;
-      margin-bottom: 1rem;
-      color: #333;
-      font-weight: 600;
-    }
-    h3 {
+      font-family: system-ui, -apple-system, sans-serif;
       font-size: 1.25rem;
-      margin-top: 1.5rem;
-      margin-bottom: 0.5rem;
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      color: #1a1a1a;
       font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
     p {
-      margin: 0.75rem 0;
+      margin: 1.25rem 0;
+      font-size: 1.125rem;
+    }
+    .meta {
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #666;
+      font-size: 1rem;
+      margin-bottom: 0;
     }
     img {
       max-width: 100%;
       height: auto;
-      border-radius: 8px;
-      margin: 1rem 0;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .meta {
-      color: #666;
-      font-size: 1rem;
-      margin-bottom: 2rem;
-    }
-    .tag {
-      display: inline-block;
-      background: #f0f0f0;
-      padding: 0.25rem 0.5rem;
       border-radius: 4px;
-      margin-right: 0.5rem;
-      font-size: 0.75rem;
-      color: #555;
-    }
-    .tags {
-      margin-top: 0.75rem;
+      margin: 2rem 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
     blockquote {
-      border-left: 3px solid #e0e0e0;
-      padding-left: 1rem;
-      margin: 1rem 0;
-      color: #555;
+      border-left: 3px solid #333;
+      padding-left: 1.5rem;
+      margin: 2rem 0;
+      color: #444;
       font-style: italic;
-    }
-    blockquote strong {
-      font-style: normal;
+      font-size: 1.125rem;
     }
     .section {
-      margin-bottom: 2rem;
-      padding-bottom: 2rem;
-      border-bottom: 1px solid #eee;
-    }
-    .section:last-child {
-      border-bottom: none;
-    }
-    .entry {
-      margin-bottom: 2rem;
-      padding: 1rem;
-      background: #fafafa;
-      border-radius: 8px;
-    }
-    .entry h3 {
-      margin-top: 0;
-      color: #666;
-      font-size: 0.875rem;
-      font-weight: 500;
+      margin-bottom: 2.5rem;
     }
     figure {
-      margin: 1.5rem 0;
+      margin: 2rem 0;
     }
     figcaption {
+      font-family: system-ui, -apple-system, sans-serif;
       font-size: 0.875rem;
       color: #666;
-      margin-top: 0.5rem;
+      margin-top: 0.75rem;
+      text-align: center;
     }
     ul {
       padding-left: 1.5rem;
+      font-size: 1.125rem;
     }
     li {
-      margin: 0.5rem 0;
+      margin: 0.75rem 0;
+    }
+    @media (max-width: 600px) {
+      body {
+        padding: 2rem 1rem;
+      }
+      h1 {
+        font-size: 2rem;
+      }
+      p, li {
+        font-size: 1rem;
+      }
     }
   </style>
 </head>

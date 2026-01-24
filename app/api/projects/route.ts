@@ -6,11 +6,22 @@ import {
   getFileContent,
   createProjectStructure,
 } from "@/lib/github";
+import { isLocalMode, getLocalProjects } from "@/lib/local-files";
 import type { ProjectMetadata } from "@/types";
 
 // GET /api/projects - List all projects
 export async function GET() {
   try {
+    // Use local files in development mode
+    if (isLocalMode()) {
+      const projects = getLocalProjects();
+      projects.sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+      return NextResponse.json({ projects });
+    }
+
     const { owner, repo } = getGitHubConfig();
     const octokit = getDefaultOctokit();
 

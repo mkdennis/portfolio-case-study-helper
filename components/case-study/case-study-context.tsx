@@ -7,100 +7,147 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import type { TimelineItem } from "@/types";
+import type { TimelineItem, CaseStudySection, ProjectMetadata } from "@/types";
+import { CASE_STUDY_SECTIONS } from "@/types";
+import { generateCaseStudyHTML } from "@/lib/case-study-generator";
 
 type CaseStudyAction =
-  | { type: "SELECT"; id: string; item: TimelineItem }
-  | { type: "DESELECT"; id: string }
-  | { type: "TOGGLE"; id: string; item: TimelineItem }
-  | { type: "SELECT_ALL"; items: Array<{ id: string; item: TimelineItem }> }
-  | { type: "CLEAR" };
+  | { type: "ADD_TO_SECTION"; section: CaseStudySection; id: string; item: TimelineItem }
+  | { type: "REMOVE_FROM_SECTION"; section: CaseStudySection; id: string }
+  | { type: "CLEAR_SECTION"; section: CaseStudySection }
+  | { type: "GENERATE"; project: ProjectMetadata }
+  | { type: "CLEAR_ALL" };
+
+interface SectionItems {
+  ids: string[];
+  items: Map<string, TimelineItem>;
+}
 
 interface CaseStudyState {
-  selectedIds: Set<string>;
-  orderedIds: string[];
-  itemsMap: Map<string, TimelineItem>;
+  sections: Map<CaseStudySection, SectionItems>;
+  generatedHtml: string | null;
+  allItemIds: Set<string>;
 }
 
 interface CaseStudyContextValue {
   state: CaseStudyState;
-  isSelected: (id: string) => boolean;
-  select: (id: string, item: TimelineItem) => void;
-  deselect: (id: string) => void;
-  toggle: (id: string, item: TimelineItem) => void;
-  selectAll: (items: Array<{ id: string; item: TimelineItem }>) => void;
-  clear: () => void;
-  getOrderedItems: () => TimelineItem[];
-  getSelectionOrder: (id: string) => number;
+  addToSection: (section: CaseStudySection, id: string, item: TimelineItem) => void;
+  removeFromSection: (section: CaseStudySection, id: string) => void;
+  clearSection: (section: CaseStudySection) => void;
+  getSectionItems: (section: CaseStudySection) => TimelineItem[];
+  getSectionItemIds: (section: CaseStudySection) => string[];
+  isItemUsed: (id: string) => boolean;
+  getItemSection: (id: string) => CaseStudySection | null;
+  generate: (project: ProjectMetadata) => void;
+  clearAll: () => void;
+  getTotalItemCount: () => number;
 }
 
 const CaseStudyContext = createContext<CaseStudyContextValue | null>(null);
+
+function createInitialSections(): Map<CaseStudySection, SectionItems> {
+  const sections = new Map<CaseStudySection, SectionItems>();
+  for (const section of CASE_STUDY_SECTIONS) {
+    sections.set(section, { ids: [], items: new Map() });
+  }
+  return sections;
+}
 
 function caseStudyReducer(
   state: CaseStudyState,
   action: CaseStudyAction
 ): CaseStudyState {
   switch (action.type) {
-    case "SELECT": {
-      if (state.selectedIds.has(action.id)) return state;
-      const newSelectedIds = new Set(state.selectedIds);
-      newSelectedIds.add(action.id);
-      const newItemsMap = new Map(state.itemsMap);
-      newItemsMap.set(action.id, action.item);
+    case "ADD_TO_SECTION": {
+      const sectionData = state.sections.get(action.section);
+      if (!sectionData || sectionData.ids.includes(action.id)) return state;
+
+      const newSections = new Map(state.sections);
+      const newSectionData: SectionItems = {
+        ids: [...sectionData.ids, action.id],
+        items: new Map(sectionData.items),
+      };
+      newSectionData.items.set(action.id, action.item);
+      newSections.set(action.section, newSectionData);
+
+      const newAllItemIds = new Set(state.allItemIds);
+      newAllItemIds.add(action.id);
+
       return {
-        selectedIds: newSelectedIds,
-        orderedIds: [...state.orderedIds, action.id],
-        itemsMap: newItemsMap,
+        ...state,
+        sections: newSections,
+        allItemIds: newAllItemIds,
+        generatedHtml: null,
       };
     }
 
-    case "DESELECT": {
-      if (!state.selectedIds.has(action.id)) return state;
-      const newSelectedIds = new Set(state.selectedIds);
-      newSelectedIds.delete(action.id);
-      const newItemsMap = new Map(state.itemsMap);
-      newItemsMap.delete(action.id);
+    case "REMOVE_FROM_SECTION": {
+      const sectionData = state.sections.get(action.section);
+      if (!sectionData || !sectionData.ids.includes(action.id)) return state;
+
+      const newSections = new Map(state.sections);
+      const newSectionData: SectionItems = {
+        ids: sectionData.ids.filter((id) => id !== action.id),
+        items: new Map(sectionData.items),
+      };
+      newSectionData.items.delete(action.id);
+      newSections.set(action.section, newSectionData);
+
+      const newAllItemIds = new Set(state.allItemIds);
+      newAllItemIds.delete(action.id);
+
       return {
-        selectedIds: newSelectedIds,
-        orderedIds: state.orderedIds.filter((id) => id !== action.id),
-        itemsMap: newItemsMap,
+        ...state,
+        sections: newSections,
+        allItemIds: newAllItemIds,
+        generatedHtml: null,
       };
     }
 
-    case "TOGGLE": {
-      if (state.selectedIds.has(action.id)) {
-        return caseStudyReducer(state, { type: "DESELECT", id: action.id });
+    case "CLEAR_SECTION": {
+      const sectionData = state.sections.get(action.section);
+      if (!sectionData || sectionData.ids.length === 0) return state;
+
+      const newSections = new Map(state.sections);
+      newSections.set(action.section, { ids: [], items: new Map() });
+
+      const newAllItemIds = new Set(state.allItemIds);
+      for (const id of sectionData.ids) {
+        newAllItemIds.delete(id);
       }
-      return caseStudyReducer(state, {
-        type: "SELECT",
-        id: action.id,
-        item: action.item,
-      });
-    }
-
-    case "SELECT_ALL": {
-      const newSelectedIds = new Set<string>();
-      const newOrderedIds: string[] = [];
-      const newItemsMap = new Map<string, TimelineItem>();
-
-      for (const { id, item } of action.items) {
-        newSelectedIds.add(id);
-        newOrderedIds.push(id);
-        newItemsMap.set(id, item);
-      }
 
       return {
-        selectedIds: newSelectedIds,
-        orderedIds: newOrderedIds,
-        itemsMap: newItemsMap,
+        ...state,
+        sections: newSections,
+        allItemIds: newAllItemIds,
+        generatedHtml: null,
       };
     }
 
-    case "CLEAR": {
+    case "GENERATE": {
+      const sectionItemsMap = new Map<CaseStudySection, TimelineItem[]>();
+      for (const section of CASE_STUDY_SECTIONS) {
+        const sectionData = state.sections.get(section);
+        if (sectionData) {
+          const items = sectionData.ids
+            .map((id) => sectionData.items.get(id))
+            .filter((item): item is TimelineItem => item !== undefined);
+          sectionItemsMap.set(section, items);
+        }
+      }
+
+      const html = generateCaseStudyHTML(action.project, sectionItemsMap);
       return {
-        selectedIds: new Set(),
-        orderedIds: [],
-        itemsMap: new Map(),
+        ...state,
+        generatedHtml: html,
+      };
+    }
+
+    case "CLEAR_ALL": {
+      return {
+        sections: createInitialSections(),
+        generatedHtml: null,
+        allItemIds: new Set(),
       };
     }
 
@@ -110,68 +157,97 @@ function caseStudyReducer(
 }
 
 const initialState: CaseStudyState = {
-  selectedIds: new Set(),
-  orderedIds: [],
-  itemsMap: new Map(),
+  sections: createInitialSections(),
+  generatedHtml: null,
+  allItemIds: new Set(),
 };
 
 export function CaseStudyProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(caseStudyReducer, initialState);
 
-  const isSelected = useCallback(
-    (id: string) => state.selectedIds.has(id),
-    [state.selectedIds]
-  );
-
-  const select = useCallback((id: string, item: TimelineItem) => {
-    dispatch({ type: "SELECT", id, item });
-  }, []);
-
-  const deselect = useCallback((id: string) => {
-    dispatch({ type: "DESELECT", id });
-  }, []);
-
-  const toggle = useCallback((id: string, item: TimelineItem) => {
-    dispatch({ type: "TOGGLE", id, item });
-  }, []);
-
-  const selectAll = useCallback(
-    (items: Array<{ id: string; item: TimelineItem }>) => {
-      dispatch({ type: "SELECT_ALL", items });
+  const addToSection = useCallback(
+    (section: CaseStudySection, id: string, item: TimelineItem) => {
+      dispatch({ type: "ADD_TO_SECTION", section, id, item });
     },
     []
   );
 
-  const clear = useCallback(() => {
-    dispatch({ type: "CLEAR" });
+  const removeFromSection = useCallback(
+    (section: CaseStudySection, id: string) => {
+      dispatch({ type: "REMOVE_FROM_SECTION", section, id });
+    },
+    []
+  );
+
+  const clearSection = useCallback((section: CaseStudySection) => {
+    dispatch({ type: "CLEAR_SECTION", section });
   }, []);
 
-  const getOrderedItems = useCallback(() => {
-    return state.orderedIds
-      .map((id) => state.itemsMap.get(id))
-      .filter((item): item is TimelineItem => item !== undefined);
-  }, [state.orderedIds, state.itemsMap]);
-
-  const getSelectionOrder = useCallback(
-    (id: string) => {
-      const index = state.orderedIds.indexOf(id);
-      return index === -1 ? -1 : index + 1;
+  const getSectionItems = useCallback(
+    (section: CaseStudySection): TimelineItem[] => {
+      const sectionData = state.sections.get(section);
+      if (!sectionData) return [];
+      return sectionData.ids
+        .map((id) => sectionData.items.get(id))
+        .filter((item): item is TimelineItem => item !== undefined);
     },
-    [state.orderedIds]
+    [state.sections]
   );
+
+  const getSectionItemIds = useCallback(
+    (section: CaseStudySection): string[] => {
+      const sectionData = state.sections.get(section);
+      return sectionData?.ids ?? [];
+    },
+    [state.sections]
+  );
+
+  const isItemUsed = useCallback(
+    (id: string): boolean => {
+      return state.allItemIds.has(id);
+    },
+    [state.allItemIds]
+  );
+
+  const getItemSection = useCallback(
+    (id: string): CaseStudySection | null => {
+      for (const section of CASE_STUDY_SECTIONS) {
+        const sectionData = state.sections.get(section);
+        if (sectionData?.ids.includes(id)) {
+          return section;
+        }
+      }
+      return null;
+    },
+    [state.sections]
+  );
+
+  const generate = useCallback((project: ProjectMetadata) => {
+    dispatch({ type: "GENERATE", project });
+  }, []);
+
+  const clearAll = useCallback(() => {
+    dispatch({ type: "CLEAR_ALL" });
+  }, []);
+
+  const getTotalItemCount = useCallback(() => {
+    return state.allItemIds.size;
+  }, [state.allItemIds]);
 
   return (
     <CaseStudyContext.Provider
       value={{
         state,
-        isSelected,
-        select,
-        deselect,
-        toggle,
-        selectAll,
-        clear,
-        getOrderedItems,
-        getSelectionOrder,
+        addToSection,
+        removeFromSection,
+        clearSection,
+        getSectionItems,
+        getSectionItemIds,
+        isItemUsed,
+        getItemSection,
+        generate,
+        clearAll,
+        getTotalItemCount,
       }}
     >
       {children}

@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import type { ProjectMetadata, JournalEntry, AssetMetadata, CaseStudySection } from "@/types";
-import { CASE_STUDY_SECTIONS } from "@/types";
+import { CASE_STUDY_SECTIONS, TRACKABLE_SECTIONS } from "@/types";
 import { SectionCard } from "@/components/case-study/section-card";
 
 interface ProjectData {
@@ -48,6 +48,21 @@ export default function ProjectPage({
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [completedSections, setCompletedSections] = useState<Set<CaseStudySection>>(new Set());
+
+  const toggleSectionComplete = (section: CaseStudySection) => {
+    setCompletedSections(prev => {
+      const next = new Set(prev);
+      if (next.has(section)) {
+        next.delete(section);
+      } else {
+        next.add(section);
+      }
+      return next;
+    });
+  };
+
+  const completedCount = TRACKABLE_SECTIONS.filter(s => completedSections.has(s)).length;
 
   useEffect(() => {
     async function fetchProject() {
@@ -293,7 +308,21 @@ export default function ProjectPage({
 
       {/* Case Study Sections */}
       <div className="space-y-4 mb-6 sm:mb-8">
-        <h2 className="text-lg sm:text-xl font-semibold">Case Study Sections</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg sm:text-xl font-semibold">Case Study Sections</h2>
+          <span className="text-sm text-muted-foreground">
+            {completedCount} of {TRACKABLE_SECTIONS.length} complete
+          </span>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="h-2 bg-muted rounded-full overflow-hidden">
+          <div
+            className="h-full bg-green-500 transition-all duration-300"
+            style={{ width: `${TRACKABLE_SECTIONS.length > 0 ? (completedCount / TRACKABLE_SECTIONS.length) * 100 : 0}%` }}
+          />
+        </div>
+
         <div className="grid gap-3 sm:gap-4 lg:grid-cols-2">
           {CASE_STUDY_SECTIONS.map((section) => (
             <SectionCard
@@ -302,6 +331,8 @@ export default function ProjectPage({
               entries={getEntriesForSection(section)}
               assets={getAssetsForSection(section)}
               projectSlug={slug}
+              isComplete={completedSections.has(section)}
+              onToggleComplete={() => toggleSectionComplete(section)}
             />
           ))}
         </div>

@@ -115,10 +115,14 @@ export const ASSET_ROLES = ["before", "after", "before-after", "exploration", "f
 export type AssetRole = typeof ASSET_ROLES[number];
 
 // Case study section types
-export const CASE_STUDY_SECTIONS = ["process", "iterations", "research", "final-results"] as const;
+export const CASE_STUDY_SECTIONS = ["all", "process", "iterations", "research", "final-results"] as const;
 export type CaseStudySection = typeof CASE_STUDY_SECTIONS[number];
 
+// Sections that can be marked as complete (excludes "all")
+export const TRACKABLE_SECTIONS = CASE_STUDY_SECTIONS.filter((s): s is Exclude<CaseStudySection, "all"> => s !== "all");
+
 export const CASE_STUDY_SECTION_LABELS: Record<CaseStudySection, string> = {
+  "all": "All Notes",
   "process": "Process",
   "iterations": "Iterations",
   "research": "Research",
