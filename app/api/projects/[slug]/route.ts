@@ -6,6 +6,7 @@ import {
   createOrUpdateFile,
   getDirectoryContents,
 } from "@/lib/github";
+import { isLocalMode, getLocalProject } from "@/lib/local-files";
 import type { ProjectMetadata, JournalEntry, AssetMetadata } from "@/types";
 import matter from "gray-matter";
 
@@ -15,9 +16,19 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
+    const { slug } = await params;
+
+    // Use local files in development mode
+    if (isLocalMode()) {
+      const localData = getLocalProject(slug);
+      if (!localData) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      }
+      return NextResponse.json(localData);
+    }
+
     const { owner, repo } = getGitHubConfig();
     const octokit = getDefaultOctokit();
-    const { slug } = await params;
 
     // Get project metadata
     const metaContent = await getFileContent(

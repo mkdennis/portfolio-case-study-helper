@@ -1,11 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
 import { useCaseStudy } from "./case-study-context";
-import { generateCaseStudyHTML } from "@/lib/case-study-generator";
 import { DownloadButton } from "./download-button";
 import { Card } from "@/components/ui/card";
-import { FileText } from "lucide-react";
+import { FileText, Sparkles } from "lucide-react";
 import type { ProjectMetadata } from "@/types";
 
 interface HTMLPreviewProps {
@@ -13,18 +11,16 @@ interface HTMLPreviewProps {
 }
 
 export function HTMLPreview({ project }: HTMLPreviewProps) {
-  const { getOrderedItems } = useCaseStudy();
-  const items = getOrderedItems();
+  const { state, getTotalItemCount } = useCaseStudy();
+  const { generatedHtml } = state;
+  const totalItems = getTotalItemCount();
 
-  const htmlContent = useMemo(() => {
-    return generateCaseStudyHTML(project, items);
-  }, [project, items]);
-
-  if (items.length === 0) {
+  // Show empty state when no HTML has been generated
+  if (!generatedHtml) {
     return (
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="font-semibold">Preview</h2>
+          <h2 className="font-semibold text-sm">Preview</h2>
           <DownloadButton
             htmlContent=""
             projectName={project.name}
@@ -33,10 +29,20 @@ export function HTMLPreview({ project }: HTMLPreviewProps) {
         </div>
         <div className="flex flex-col items-center justify-center flex-1 text-center p-8">
           <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No items selected</h3>
-          <p className="text-muted-foreground">
-            Select timeline items on the left to build your case study.
+          <h3 className="text-lg font-semibold mb-2">
+            {totalItems === 0 ? "No items selected" : "Ready to generate"}
+          </h3>
+          <p className="text-muted-foreground text-sm max-w-xs">
+            {totalItems === 0
+              ? "Add artifacts to sections on the left, then click Generate to create your case study."
+              : `You have ${totalItems} item${totalItems === 1 ? "" : "s"} selected. Click "Generate Case Study" to see the preview.`}
           </p>
+          {totalItems > 0 && (
+            <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
+              <Sparkles className="h-4 w-4" />
+              <span>Click Generate Case Study to preview</span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -45,8 +51,8 @@ export function HTMLPreview({ project }: HTMLPreviewProps) {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between p-4 border-b">
-        <h2 className="font-semibold">Preview</h2>
-        <DownloadButton htmlContent={htmlContent} projectName={project.name} />
+        <h2 className="font-semibold text-sm">Preview</h2>
+        <DownloadButton htmlContent={generatedHtml} projectName={project.name} />
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -68,7 +74,7 @@ export function HTMLPreview({ project }: HTMLPreviewProps) {
               [&_.tag]:inline-block [&_.tag]:bg-muted [&_.tag]:px-2 [&_.tag]:py-0.5 [&_.tag]:rounded [&_.tag]:text-xs [&_.tag]:mr-1
               [&_.tags]:mt-2
               [&_.entry]:bg-muted/50 [&_.entry]:p-4 [&_.entry]:rounded-lg [&_.entry]:mb-4"
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
+            dangerouslySetInnerHTML={{ __html: generatedHtml }}
           />
         </Card>
       </div>

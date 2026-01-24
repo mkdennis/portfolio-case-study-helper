@@ -3,7 +3,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Image as ImageIcon, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { Calendar, Image as ImageIcon, ChevronDown, ChevronRight, Plus, CheckCircle, Circle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useState } from "react";
 import type { JournalEntry, AssetMetadata, CaseStudySection } from "@/types";
@@ -15,14 +16,17 @@ interface SectionCardProps {
   entries: JournalEntry[];
   assets: Array<AssetMetadata & { url: string }>;
   projectSlug: string;
+  isComplete?: boolean;
+  onToggleComplete?: () => void;
 }
 
-export function SectionCard({ section, entries, assets, projectSlug }: SectionCardProps) {
+export function SectionCard({ section, entries, assets, projectSlug, isComplete, onToggleComplete }: SectionCardProps) {
   const [isExpanded, setIsExpanded] = useState(entries.length > 0 || assets.length > 0);
   const isEmpty = entries.length === 0 && assets.length === 0;
+  const isTrackable = section !== "all";
 
   return (
-    <Card className={isEmpty ? "opacity-60" : ""}>
+    <Card className={cn(isEmpty && "opacity-60")}>
       <CardHeader
         className="cursor-pointer flex flex-row items-center justify-between py-4"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -32,6 +36,9 @@ export function SectionCard({ section, entries, assets, projectSlug }: SectionCa
             <ChevronDown className="h-4 w-4" />
           ) : (
             <ChevronRight className="h-4 w-4" />
+          )}
+          {isComplete && (
+            <CheckCircle className="h-4 w-4 text-green-500" />
           )}
           {CASE_STUDY_SECTION_LABELS[section]}
         </CardTitle>
@@ -51,6 +58,32 @@ export function SectionCard({ section, entries, assets, projectSlug }: SectionCa
               Add Entry
             </Button>
           </Link>
+          {isTrackable && onToggleComplete && (
+            <Button
+              variant={isComplete ? "default" : "outline"}
+              size="sm"
+              className={cn(
+                "h-7 text-xs",
+                isComplete && "bg-green-600 hover:bg-green-700"
+              )}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleComplete();
+              }}
+            >
+              {isComplete ? (
+                <>
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Done
+                </>
+              ) : (
+                <>
+                  <Circle className="h-3 w-3 mr-1" />
+                  Mark Done
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </CardHeader>
 

@@ -1,5 +1,5 @@
 export { CaseStudyProvider, useCaseStudy } from "./case-study-context";
 export { CaseStudyLayout } from "./case-study-layout";
-export { SelectableTimeline } from "./selectable-timeline";
+export { OutlinePanel } from "./outline-panel";
 export { HTMLPreview } from "./html-preview";
 export { DownloadButton } from "./download-button";
