@@ -24,8 +24,8 @@ export function MobileNav() {
   const isDashboard = pathname === "/dashboard" || pathname === "/dashboard/new";
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t h-16 pb-safe md:hidden">
-      <div className="flex items-center justify-around h-full px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t pb-safe md:hidden">
+      <div className="flex items-center justify-around h-16 px-2">
         {/* Dashboard */}
         <Link
           href="/dashboard"
