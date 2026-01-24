@@ -24,29 +24,35 @@ export function TimelineJournalCard({ entry, projectSlug }: TimelineJournalCardP
         </CardHeader>
         <CardContent className="pt-0">
           <div className="space-y-2">
-            {entry.content.decision && (
-              <div>
-                <span className="text-xs font-medium text-muted-foreground uppercase">
-                  Decision
-                </span>
-                <p className="text-sm line-clamp-2">{entry.content.decision}</p>
-              </div>
-            )}
-            {!entry.content.decision && entry.content.milestone && (
-              <div>
-                <span className="text-xs font-medium text-muted-foreground uppercase">
-                  Milestone
-                </span>
-                <p className="text-sm line-clamp-2">{entry.content.milestone}</p>
-              </div>
-            )}
-            {!entry.content.decision && !entry.content.milestone && entry.content.tradeoff && (
-              <div>
-                <span className="text-xs font-medium text-muted-foreground uppercase">
-                  Tradeoff
-                </span>
-                <p className="text-sm line-clamp-2">{entry.content.tradeoff}</p>
-              </div>
+            {entry.content.text ? (
+              <p className="text-sm line-clamp-3">{entry.content.text}</p>
+            ) : (
+              <>
+                {entry.content.decision && (
+                  <div>
+                    <span className="text-xs font-medium text-muted-foreground uppercase">
+                      Decision
+                    </span>
+                    <p className="text-sm line-clamp-2">{entry.content.decision}</p>
+                  </div>
+                )}
+                {!entry.content.decision && entry.content.milestone && (
+                  <div>
+                    <span className="text-xs font-medium text-muted-foreground uppercase">
+                      Milestone
+                    </span>
+                    <p className="text-sm line-clamp-2">{entry.content.milestone}</p>
+                  </div>
+                )}
+                {!entry.content.decision && !entry.content.milestone && entry.content.tradeoff && (
+                  <div>
+                    <span className="text-xs font-medium text-muted-foreground uppercase">
+                      Tradeoff
+                    </span>
+                    <p className="text-sm line-clamp-2">{entry.content.tradeoff}</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

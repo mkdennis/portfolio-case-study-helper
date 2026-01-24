@@ -89,7 +89,10 @@ export default function JournalEntryPage({
     );
   }
 
-  const sections = [
+  // Check if this is a new-format entry (has text) or legacy entry (has sections)
+  const isNewFormat = !!entry.content.text;
+
+  const legacySections = [
     { key: "decision", label: "Decision", content: entry.content.decision },
     { key: "why", label: "Why", content: entry.content.why },
     { key: "milestone", label: "Milestone", content: entry.content.milestone },
@@ -97,6 +100,12 @@ export default function JournalEntryPage({
     { key: "tradeoff", label: "Tradeoff", content: entry.content.tradeoff },
     { key: "feedback", label: "Feedback", content: entry.content.feedback },
   ].filter((s) => s.content);
+
+  // Build image URLs for assets
+  const getAssetUrl = (filename: string) => {
+    // Assets are stored in GitHub raw content
+    return `https://raw.githubusercontent.com/${process.env.NEXT_PUBLIC_GITHUB_OWNER}/${process.env.NEXT_PUBLIC_GITHUB_REPO}/main/projects/${slug}/assets/${filename}`;
+  };
 
   return (
     <div className="min-h-screen">
@@ -136,28 +145,39 @@ export default function JournalEntryPage({
               )}
             </CardHeader>
             <CardContent className="space-y-6">
-              {sections.map((section) => (
-                <div key={section.key}>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                    {section.label}
-                  </h3>
-                  <p className="whitespace-pre-wrap">{section.content}</p>
-                </div>
-              ))}
+              {isNewFormat ? (
+                <p className="whitespace-pre-wrap">{entry.content.text}</p>
+              ) : (
+                legacySections.map((section) => (
+                  <div key={section.key}>
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                      {section.label}
+                    </h3>
+                    <p className="whitespace-pre-wrap">{section.content}</p>
+                  </div>
+                ))
+              )}
 
               {entry.assets.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                    Attached Assets
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {entry.assets.map((asset) => (
+                <div className="space-y-3">
+                  {entry.assets.map((asset) => {
+                    const isImage = /\.(png|jpg|jpeg|gif)$/i.test(asset);
+                    return isImage ? (
+                      <div key={asset} className="rounded-lg overflow-hidden border">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={getAssetUrl(asset)}
+                          alt={asset}
+                          className="w-full"
+                        />
+                      </div>
+                    ) : (
                       <Badge key={asset} variant="secondary" className="gap-1">
                         <ImageIcon className="h-3 w-3" />
                         {asset}
                       </Badge>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
