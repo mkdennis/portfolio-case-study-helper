@@ -25,6 +25,7 @@ export interface JournalEntry {
   date: string;
   tags: string[];
   assets: string[];
+  section?: CaseStudySection;
   content: {
     text?: string;
     // Legacy fields for backward compatibility with existing entries
@@ -42,6 +43,7 @@ export interface JournalEntryFrontmatter {
   date: string;
   tags: string[];
   assets: string[];
+  section?: CaseStudySection;
 }
 
 // Asset types
@@ -112,6 +114,17 @@ export type EntryTag = typeof ENTRY_TAGS[number];
 export const ASSET_ROLES = ["before", "after", "before-after", "exploration", "final", "process", "other"] as const;
 export type AssetRole = typeof ASSET_ROLES[number];
 
+// Case study section types
+export const CASE_STUDY_SECTIONS = ["process", "iterations", "research", "final-results"] as const;
+export type CaseStudySection = typeof CASE_STUDY_SECTIONS[number];
+
+export const CASE_STUDY_SECTION_LABELS: Record<CaseStudySection, string> = {
+  "process": "Process",
+  "iterations": "Iterations",
+  "research": "Research",
+  "final-results": "Final Results"
+};
+
 // Timeline types
 export interface TimelineJournalItem {
   type: "journal";
@@ -126,3 +139,10 @@ export interface TimelineAssetItem {
 }
 
 export type TimelineItem = TimelineJournalItem | TimelineAssetItem;
+
+// Case study compiler types
+export interface CaseStudyState {
+  selectedIds: Set<string>;
+  orderedIds: string[];
+  itemsMap: Map<string, TimelineItem>;
+}

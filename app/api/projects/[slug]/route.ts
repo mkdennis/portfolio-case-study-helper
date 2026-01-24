@@ -55,18 +55,25 @@ export async function GET(
         if (content) {
           try {
             const parsed = matter(content.content);
+            const extractedContent: JournalEntry["content"] = {
+              decision: extractSection(parsed.content, "decision"),
+              why: extractSection(parsed.content, "why"),
+              milestone: extractSection(parsed.content, "milestone"),
+              change: extractSection(parsed.content, "change"),
+              tradeoff: extractSection(parsed.content, "tradeoff"),
+              feedback: extractSection(parsed.content, "feedback"),
+            };
+            // If no legacy sections found, treat the content as text
+            const hasLegacyContent = Object.values(extractedContent).some(Boolean);
+            if (!hasLegacyContent && parsed.content.trim()) {
+              extractedContent.text = parsed.content.trim();
+            }
             const entry: JournalEntry = {
               date: parsed.data.date || file.name.replace(".md", ""),
               tags: parsed.data.tags || [],
               assets: parsed.data.assets || [],
-              content: {
-                decision: extractSection(parsed.content, "decision"),
-                why: extractSection(parsed.content, "why"),
-                milestone: extractSection(parsed.content, "milestone"),
-                change: extractSection(parsed.content, "change"),
-                tradeoff: extractSection(parsed.content, "tradeoff"),
-                feedback: extractSection(parsed.content, "feedback"),
-              },
+              section: parsed.data.section,
+              content: extractedContent,
               rawMarkdown: content.content,
             };
             entries.push(entry);
