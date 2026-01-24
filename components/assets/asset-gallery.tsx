@@ -68,7 +68,7 @@ export function AssetGallery({
         </Button>
       </div>
 
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
         {assets.map((asset) => (
           <Card
             key={asset.filename}
@@ -89,7 +89,7 @@ export function AssetGallery({
                 </div>
               )}
             </div>
-            <CardContent className="p-3">
+            <CardContent className="p-2 sm:p-3">
               <p className="text-sm font-medium truncate">{asset.filename}</p>
               <div className="flex items-center justify-between mt-1">
                 <Badge variant="outline" className="text-xs">

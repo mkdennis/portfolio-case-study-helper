@@ -125,6 +125,25 @@
   .container {
     @apply mx-auto px-4 md:px-6 lg:px-8;
   }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .overscroll-contain {
+    overscroll-behavior: contain;
+  }
 }
 
 /* Timeline animations */
@@ -160,4 +179,42 @@
 
 .timeline-item-visible-right {
   animation: timeline-fade-in-right 0.5s ease-out forwards;
+}
+
+/* Voice waveform animations */
+@keyframes voice-wave {
+  0%, 100% {
+    height: 4px;
+  }
+  50% {
+    height: 16px;
+  }
+}
+
+.voice-wave-bar {
+  min-height: 4px;
+}
+
+.animate-voice-wave-1 {
+  animation: voice-wave 0.8s ease-in-out infinite;
+}
+
+.animate-voice-wave-2 {
+  animation: voice-wave 0.8s ease-in-out infinite;
+  animation-delay: 0.1s;
+}
+
+.animate-voice-wave-3 {
+  animation: voice-wave 0.8s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+
+.animate-voice-wave-4 {
+  animation: voice-wave 0.8s ease-in-out infinite;
+  animation-delay: 0.3s;
+}
+
+.animate-voice-wave-5 {
+  animation: voice-wave 0.8s ease-in-out infinite;
+  animation-delay: 0.4s;
 }

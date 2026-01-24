@@ -50,6 +50,7 @@ export async function GET(request: NextRequest) {
               date: parsed.data.date || file.name.replace(".md", ""),
               tags: parsed.data.tags || [],
               assets: parsed.data.assets || [],
+              section: parsed.data.section,
               content: extractContent(parsed.content),
               rawMarkdown: content.content,
             };
@@ -88,6 +89,7 @@ export async function POST(request: NextRequest) {
       tags = [],
       assets = [],
       text,
+      section,
     } = body;
 
     if (!projectSlug || !date) {
@@ -105,11 +107,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Build markdown content
-    const frontmatter = {
+    const frontmatter: Record<string, unknown> = {
       date,
       tags,
       assets,
     };
+
+    if (section) {
+      frontmatter.section = section;
+    }
 
     const content = text.trim();
 
