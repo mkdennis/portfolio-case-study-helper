@@ -110,27 +110,51 @@ export function WorkingSection({
 
               {relatedEntries.length > 0 && (
                 <div className="space-y-2">
-                  {relatedEntries.map((entry) => (
-                    <a
-                      key={entry.date}
-                      href={`/projects/${projectSlug}/journal/${entry.date}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                        {format(new Date(entry.date), "MMM d, yyyy")}
-                        {entry.tags.map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                      {entry.rawMarkdown && (
-                        <p className="text-sm whitespace-pre-wrap">{entry.rawMarkdown}</p>
-                      )}
-                    </a>
-                  ))}
+                  {relatedEntries.map((entry) => {
+                    // Check if new format (has text) or legacy format (has sections)
+                    const isNewFormat = !!entry.content.text;
+                    const legacySections = [
+                      { key: "decision", label: "Decision", content: entry.content.decision },
+                      { key: "why", label: "Why", content: entry.content.why },
+                      { key: "milestone", label: "Milestone", content: entry.content.milestone },
+                      { key: "change", label: "What Changed", content: entry.content.change },
+                      { key: "tradeoff", label: "Tradeoff", content: entry.content.tradeoff },
+                      { key: "feedback", label: "Feedback", content: entry.content.feedback },
+                    ].filter((s) => s.content);
+
+                    return (
+                      <a
+                        key={entry.date}
+                        href={`/projects/${projectSlug}/journal/${entry.date}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                          {format(new Date(entry.date), "MMM d, yyyy")}
+                          {entry.tags.map((tag) => (
+                            <Badge key={tag} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                        {isNewFormat ? (
+                          <p className="text-sm whitespace-pre-wrap">{entry.content.text}</p>
+                        ) : (
+                          <div className="space-y-2">
+                            {legacySections.map((section) => (
+                              <div key={section.key}>
+                                <span className="text-xs font-medium text-muted-foreground uppercase">
+                                  {section.label}
+                                </span>
+                                <p className="text-sm whitespace-pre-wrap">{section.content}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </a>
+                    );
+                  })}
                 </div>
               )}
 
