@@ -126,8 +126,8 @@ export function WorkingSection({
                           </Badge>
                         ))}
                       </div>
-                      {entry.content.text && (
-                        <p className="text-sm">{entry.content.text}</p>
+                      {entry.rawMarkdown && (
+                        <p className="text-sm whitespace-pre-wrap">{entry.rawMarkdown}</p>
                       )}
                     </a>
                   ))}
