@@ -1,0 +1,36 @@
+{
+  "projectId": "item-upload-redesign",
+  "sections": {
+    "overview": {
+      "content": "Start by describing the context and background for the overview section.",
+      "updatedAt": "2026-01-26T01:16:04.222Z"
+    },
+    "problem": {
+      "content": "",
+      "updatedAt": "2026-01-26T01:15:45.517Z"
+    },
+    "research": {
+      "content": "",
+      "updatedAt": "2026-01-26T01:15:45.517Z"
+    },
+    "process": {
+      "content": "",
+      "updatedAt": "2026-01-26T01:15:45.517Z"
+    },
+    "iterations": {
+      "content": "",
+      "updatedAt": "2026-01-26T01:15:45.517Z"
+    },
+    "results": {
+      "content": "",
+      "updatedAt": "2026-01-26T01:15:45.517Z"
+    },
+    "reflection": {
+      "content": "",
+      "updatedAt": "2026-01-26T01:15:45.517Z"
+    }
+  },
+  "wordGoal": 2000,
+  "createdAt": "2026-01-26T01:15:45.517Z",
+  "updatedAt": "2026-01-26T01:16:06.277Z"
+}
