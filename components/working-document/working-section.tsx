@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +41,6 @@ export function WorkingSection({
   onChange,
   onHelpMeWrite,
 }: WorkingSectionProps) {
-  const [showRelated, setShowRelated] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea
@@ -86,7 +85,7 @@ export function WorkingSection({
           />
 
           {/* Action buttons */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center">
             <Button
               variant="outline"
               size="sm"
@@ -99,53 +98,39 @@ export function WorkingSection({
               <Sparkles className="h-4 w-4" />
               Help me write
             </Button>
-
-            {hasRelated && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowRelated(!showRelated);
-                }}
-              >
-                {showRelated ? "Hide" : "Show"} related notes
-              </Button>
-            )}
           </div>
 
-          {/* Related notes and assets */}
-          {showRelated && hasRelated && (
-            <div className="space-y-4 pt-4 border-t">
+          {/* Related notes - always visible when there are related items */}
+          {hasRelated && (
+            <div className="space-y-3 pt-4 border-t">
+              <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Calendar className="h-3 w-3" />
+                Related Notes ({relatedEntries.length + relatedAssets.length})
+              </h4>
+
               {relatedEntries.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                    <Calendar className="h-3 w-3" />
-                    Related Journal Entries
-                  </h4>
-                  <div className="space-y-2">
-                    {relatedEntries.map((entry) => (
-                      <a
-                        key={entry.date}
-                        href={`/projects/${projectSlug}/journal/${entry.date}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                          {format(new Date(entry.date), "MMM d, yyyy")}
-                          {entry.tags.map((tag) => (
-                            <Badge key={tag} variant="outline" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                        {entry.content.text && (
-                          <p className="text-sm">{entry.content.text}</p>
-                        )}
-                      </a>
-                    ))}
-                  </div>
+                  {relatedEntries.map((entry) => (
+                    <a
+                      key={entry.date}
+                      href={`/projects/${projectSlug}/journal/${entry.date}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                        {format(new Date(entry.date), "MMM d, yyyy")}
+                        {entry.tags.map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                      {entry.content.text && (
+                        <p className="text-sm">{entry.content.text}</p>
+                      )}
+                    </a>
+                  ))}
                 </div>
               )}
 
