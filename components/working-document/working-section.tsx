@@ -6,13 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ChevronDown,
-  ChevronRight,
   Sparkles,
   Calendar,
   Image as ImageIcon,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import type {
   WorkingDocumentSection,
@@ -33,12 +30,6 @@ interface WorkingSectionProps {
   projectSlug: string;
   onChange: (content: string) => void;
   onHelpMeWrite: () => void;
-  isExpanded?: boolean;
-  onToggleExpand?: () => void;
-}
-
-function countWords(text: string): number {
-  return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
 export function WorkingSection({
@@ -49,12 +40,9 @@ export function WorkingSection({
   projectSlug,
   onChange,
   onHelpMeWrite,
-  isExpanded = false,
-  onToggleExpand,
 }: WorkingSectionProps) {
   const [showRelated, setShowRelated] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const wordCount = countWords(data.content);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -63,45 +51,26 @@ export function WorkingSection({
       textarea.style.height = "auto";
       textarea.style.height = `${Math.max(120, textarea.scrollHeight)}px`;
     }
-  }, [data.content, isExpanded]);
+  }, [data.content]);
 
   const hasRelated = relatedEntries.length > 0 || relatedAssets.length > 0;
 
   return (
-    <Card className={cn("transition-all", isExpanded && "ring-2 ring-primary/20")}>
-      <CardHeader
-        className="cursor-pointer py-4"
-        onClick={onToggleExpand}
-      >
+    <Card>
+      <CardHeader className="py-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
+          <CardTitle className="text-lg">
             {WORKING_DOCUMENT_SECTION_LABELS[section]}
           </CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              {wordCount} words
+          {hasRelated && (
+            <Badge variant="secondary" className="text-xs">
+              {relatedEntries.length + relatedAssets.length} related
             </Badge>
-            {hasRelated && (
-              <Badge variant="secondary" className="text-xs">
-                {relatedEntries.length + relatedAssets.length} related
-              </Badge>
-            )}
-          </div>
+          )}
         </div>
-        {!isExpanded && data.content && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mt-2 ml-6">
-            {data.content}
-          </p>
-        )}
       </CardHeader>
 
-      {isExpanded && (
-        <CardContent className="space-y-4 pt-0">
+      <CardContent className="space-y-4 pt-0">
           {/* Writing prompt hint */}
           <p className="text-sm text-muted-foreground italic">
             {WORKING_DOCUMENT_SECTION_PROMPTS[section]}
@@ -172,7 +141,7 @@ export function WorkingSection({
                           ))}
                         </div>
                         {entry.content.text && (
-                          <p className="text-sm line-clamp-3">{entry.content.text}</p>
+                          <p className="text-sm">{entry.content.text}</p>
                         )}
                       </a>
                     ))}
@@ -217,7 +186,6 @@ export function WorkingSection({
             </div>
           )}
         </CardContent>
-      )}
     </Card>
   );
 }

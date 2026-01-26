@@ -81,7 +81,6 @@ export default function WorkingCaseStudyPage({
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [expandedSection, setExpandedSection] = useState<WorkingDocumentSection | null>(null);
   const [aiAssistantSection, setAiAssistantSection] = useState<WorkingDocumentSection | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -336,10 +335,6 @@ export default function WorkingCaseStudyPage({
             projectSlug={slug}
             onChange={(content) => handleSectionChange(section, content)}
             onHelpMeWrite={() => setAiAssistantSection(section)}
-            isExpanded={expandedSection === section}
-            onToggleExpand={() => {
-              setExpandedSection(expandedSection === section ? null : section);
-            }}
           />
         ))}
       </div>
