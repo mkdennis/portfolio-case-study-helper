@@ -1,0 +1,20 @@
+{
+  "id": "insider-v2",
+  "name": "Insider V2",
+  "role": "Lead Product Designer",
+  "timeframe": {
+    "start": "2026-01-29",
+    "end": null,
+    "status": "in-progress"
+  },
+  "problemSpace": "Sellers want demand data. Currently not using our insider tool.",
+  "constraints": {
+    "team": "",
+    "timeline": "",
+    "scope": "",
+    "technical": ""
+  },
+  "tags": [],
+  "createdAt": "2026-01-29T01:32:01.749Z",
+  "updatedAt": "2026-01-29T01:32:01.749Z"
+}
