@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDefaultOctokit, getGitHubConfig, getFileContent } from "@/lib/github";
+import { getDefaultOctokit, getGitHubConfig, getFileContent, deleteFile } from "@/lib/github";
 import matter from "gray-matter";
 import type { JournalEntry } from "@/types";
 
@@ -49,6 +49,56 @@ export async function GET(
     console.error("Error fetching journal entry:", error);
     return NextResponse.json(
       { error: "Failed to fetch journal entry" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/journal/[date] - Delete a journal entry
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ date: string }> }
+) {
+  const { searchParams } = new URL(request.url);
+  const project = searchParams.get("project");
+
+  if (!project) {
+    return NextResponse.json(
+      { error: "Project is required" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const { owner, repo } = getGitHubConfig();
+    const octokit = getDefaultOctokit();
+    const { date } = await params;
+
+    const content = await getFileContent(
+      octokit,
+      owner,
+      repo,
+      `projects/${project}/journal/${date}.md`
+    );
+
+    if (!content) {
+      return NextResponse.json({ error: "Entry not found" }, { status: 404 });
+    }
+
+    await deleteFile(
+      octokit,
+      owner,
+      repo,
+      `projects/${project}/journal/${date}.md`,
+      content.sha,
+      `Delete journal entry: ${date}`
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting journal entry:", error);
+    return NextResponse.json(
+      { error: "Failed to delete journal entry" },
       { status: 500 }
     );
   }

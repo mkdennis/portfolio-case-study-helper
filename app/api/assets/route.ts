@@ -6,6 +6,7 @@ import {
   getFileContent,
   uploadBinaryFile,
   createOrUpdateFile,
+  deleteFile,
 } from "@/lib/github";
 import type { AssetMetadata } from "@/types";
 
@@ -194,6 +195,75 @@ export async function POST(request: NextRequest) {
     console.error("Error uploading asset:", error);
     return NextResponse.json(
       { error: "Failed to upload asset" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/assets - Delete an asset
+export async function DELETE(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const project = searchParams.get("project");
+  const filename = searchParams.get("filename");
+
+  if (!project || !filename) {
+    return NextResponse.json(
+      { error: "Project and filename are required" },
+      { status: 400 }
+    );
+  }
+
+  try {
+    const { owner, repo } = getGitHubConfig();
+    const octokit = getDefaultOctokit();
+
+    // Get the asset file to get its SHA
+    const assetFiles = await getDirectoryContents(
+      octokit,
+      owner,
+      repo,
+      `projects/${project}/assets`
+    );
+
+    const assetFile = assetFiles.find((f) => f.name === filename);
+    if (!assetFile) {
+      return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+    }
+
+    // Delete the asset file
+    await deleteFile(
+      octokit,
+      owner,
+      repo,
+      `projects/${project}/assets/${filename}`,
+      assetFile.sha,
+      `Delete asset: ${filename}`
+    );
+
+    // Try to delete metadata file if it exists
+    const metadataContent = await getFileContent(
+      octokit,
+      owner,
+      repo,
+      `projects/${project}/assets/.metadata/${filename}.json`
+    );
+
+    if (metadataContent) {
+      await deleteFile(
+        octokit,
+        owner,
+        repo,
+        `projects/${project}/assets/.metadata/${filename}.json`,
+        metadataContent.sha,
+        `Delete asset metadata: ${filename}`
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting asset:", error);
+    return NextResponse.json(
+      { error: "Failed to delete asset" },
       { status: 500 }
     );
   }
