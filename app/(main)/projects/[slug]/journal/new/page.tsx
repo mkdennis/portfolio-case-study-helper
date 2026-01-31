@@ -4,12 +4,13 @@ import { useState, useCallback, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, X, Upload, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, Loader2, X, Upload, Image as ImageIcon, ChevronDown, ChevronRight } from "lucide-react";
+import { format } from "date-fns";
 import { VoiceMicButton } from "@/components/ui/voice-mic-button";
 import { toast } from "sonner";
 import { ENTRY_TAGS, CASE_STUDY_SECTIONS, CASE_STUDY_SECTION_LABELS, type EntryTag, type CaseStudySection } from "@/types";
@@ -30,6 +31,7 @@ export default function NewJournalEntryPage({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Get initial section from URL params if valid
   const initialSection = searchParams.get("section");
@@ -42,6 +44,9 @@ export default function NewJournalEntryPage({
   const [tags, setTags] = useState<EntryTag[]>([]);
   const [section, setSection] = useState<CaseStudySection | "">(validInitialSection);
   const [text, setText] = useState("");
+
+  // Auto-expand details if section is pre-selected from URL
+  const hasPreselectedSection = Boolean(validInitialSection);
 
   // Image state
   const [isDragging, setIsDragging] = useState(false);
@@ -177,6 +182,13 @@ export default function NewJournalEntryPage({
     }
   }
 
+  // Summary of optional details added
+  const detailsSummary = [
+    tags.length > 0 && `${tags.length} tag${tags.length > 1 ? "s" : ""}`,
+    section && CASE_STUDY_SECTION_LABELS[section],
+    imageFile && "1 image",
+  ].filter(Boolean);
+
   return (
     <main className="container py-6 sm:py-8">
       <div className="max-w-2xl mx-auto">
@@ -189,80 +201,18 @@ export default function NewJournalEntryPage({
         </Link>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="text-xl sm:text-2xl">New Journal Entry</CardTitle>
-            <CardDescription>
-              Document today&apos;s design decisions, milestones, and insights.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Date */}
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Journal Entry - NOW FIRST */}
               <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full sm:w-48"
-                />
-              </div>
-
-              {/* Tags */}
-              <div className="space-y-2">
-                <Label>Tags (optional)</Label>
-                <div className="flex flex-wrap gap-2">
-                  {ENTRY_TAGS.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant={tags.includes(tag) ? "default" : "outline"}
-                      className="cursor-pointer py-2 px-3 text-sm"
-                      onClick={() => toggleTag(tag)}
-                    >
-                      {tag}
-                      {tags.includes(tag) && (
-                        <X className="ml-1 h-3 w-3" />
-                      )}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Case Study Section */}
-              <div className="space-y-2">
-                <Label htmlFor="section">Case Study Section (optional)</Label>
-                <Select
-                  value={section || "none"}
-                  onValueChange={(value) => setSection(value === "none" ? "" : value as CaseStudySection)}
-                >
-                  <SelectTrigger className="w-full sm:w-64">
-                    <SelectValue placeholder="Select a section..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {CASE_STUDY_SECTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {CASE_STUDY_SECTION_LABELS[s]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  Link this entry to a case study section for organized presentation.
-                </p>
-              </div>
-
-              {/* Journal Entry */}
-              <div className="space-y-2">
-                <Label htmlFor="text">Journal Entry</Label>
                 <div className="relative">
                   <Textarea
                     id="text"
                     placeholder="What happened today? Decisions made, milestones hit, challenges faced..."
                     value={text}
                     onChange={(e) => setText(e.target.value)}
-                    className="min-h-40 pb-14"
+                    className="min-h-32 pb-14 text-base"
+                    autoFocus
                   />
                   <div className="absolute bottom-3 right-3">
                     <VoiceMicButton
@@ -278,85 +228,168 @@ export default function NewJournalEntryPage({
                 </div>
               </div>
 
-              {/* Image Upload */}
-              <div className="space-y-2">
-                <Label>Image (optional)</Label>
-                {!imageFile ? (
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                      isDragging
-                        ? "border-primary bg-primary/5"
-                        : "border-muted-foreground/25 hover:border-muted-foreground/50"
-                    }`}
-                    onDragEnter={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDragOver={handleDrag}
-                    onDrop={handleDrop}
-                  >
-                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground mb-2">
-                      <span className="hidden sm:inline">Drag and drop an image, or click to select</span>
-                      <span className="sm:hidden">Tap to select an image</span>
-                    </p>
-                    <input
-                      type="file"
-                      id="image-upload"
-                      className="hidden"
-                      accept="image/png,image/jpeg,image/gif"
-                      onChange={handleFileInput}
-                    />
-                    <label htmlFor="image-upload">
-                      <Button type="button" variant="secondary" size="sm" asChild>
-                        <span>Select Image</span>
-                      </Button>
-                    </label>
-                  </div>
-                ) : (
-                  <div className="border rounded-lg p-4">
-                    <div className="flex gap-4">
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                        {imagePreview ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={imagePreview}
-                            alt="Preview"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
+              {/* Collapsible Details Section */}
+              <div className="border rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setShowDetails(!showDetails)}
+                  className="w-full flex items-center justify-between p-3 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    {showDetails || hasPreselectedSection ? (
+                      <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
+                    )}
+                    Add details
+                    {detailsSummary.length > 0 && !showDetails && !hasPreselectedSection && (
+                      <span className="text-xs text-muted-foreground">
+                        ({detailsSummary.join(", ")})
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(date), "MMM d, yyyy")}
+                  </span>
+                </button>
+
+                {(showDetails || hasPreselectedSection) && (
+                  <div className="px-3 pb-3 space-y-4 border-t pt-3">
+                    {/* Date */}
+                    <div className="space-y-2">
+                      <Label htmlFor="date" className="text-sm">Date</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        className="w-full sm:w-48"
+                      />
+                    </div>
+
+                    {/* Tags */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">Tags</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {ENTRY_TAGS.map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant={tags.includes(tag) ? "default" : "outline"}
+                            className="cursor-pointer py-1.5 px-2.5 text-xs"
+                            onClick={() => toggleTag(tag)}
+                          >
+                            {tag}
+                            {tags.includes(tag) && (
+                              <X className="ml-1 h-3 w-3" />
+                            )}
+                          </Badge>
+                        ))}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate text-sm sm:text-base">{imageFile.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(imageFile.size / 1024).toFixed(1)} KB
-                        </p>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={removeImage}
-                          className="mt-2"
+                    </div>
+
+                    {/* Case Study Section */}
+                    <div className="space-y-2">
+                      <Label htmlFor="section" className="text-sm">Case Study Section</Label>
+                      <Select
+                        value={section || "none"}
+                        onValueChange={(value) => setSection(value === "none" ? "" : value as CaseStudySection)}
+                      >
+                        <SelectTrigger className="w-full sm:w-64">
+                          <SelectValue placeholder="Select a section..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">None</SelectItem>
+                          {CASE_STUDY_SECTIONS.map((s) => (
+                            <SelectItem key={s} value={s}>
+                              {CASE_STUDY_SECTION_LABELS[s]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Image Upload */}
+                    <div className="space-y-2">
+                      <Label className="text-sm">Image</Label>
+                      {!imageFile ? (
+                        <div
+                          className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                            isDragging
+                              ? "border-primary bg-primary/5"
+                              : "border-muted-foreground/25 hover:border-muted-foreground/50"
+                          }`}
+                          onDragEnter={handleDrag}
+                          onDragLeave={handleDrag}
+                          onDragOver={handleDrag}
+                          onDrop={handleDrop}
                         >
-                          <X className="h-4 w-4 mr-1" />
-                          Remove
-                        </Button>
-                      </div>
+                          <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
+                          <p className="text-xs text-muted-foreground mb-2">
+                            <span className="hidden sm:inline">Drag and drop, or click to select</span>
+                            <span className="sm:hidden">Tap to select</span>
+                          </p>
+                          <input
+                            type="file"
+                            id="image-upload"
+                            className="hidden"
+                            accept="image/png,image/jpeg,image/gif"
+                            onChange={handleFileInput}
+                          />
+                          <label htmlFor="image-upload">
+                            <Button type="button" variant="secondary" size="sm" asChild>
+                              <span>Select Image</span>
+                            </Button>
+                          </label>
+                        </div>
+                      ) : (
+                        <div className="border rounded-lg p-3">
+                          <div className="flex gap-3">
+                            <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                              {imagePreview ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={imagePreview}
+                                  alt="Preview"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate text-sm">{imageFile.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {(imageFile.size / 1024).toFixed(1)} KB
+                              </p>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={removeImage}
+                                className="mt-1 h-7 text-xs"
+                              >
+                                <X className="h-3 w-3 mr-1" />
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Submit - stack buttons on mobile */}
-              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:gap-4">
-                <Link href={`/projects/${slug}`} className="w-full sm:w-auto">
+              {/* Submit */}
+              <div className="flex gap-3 pt-2">
+                <Link href={`/projects/${slug}`} className="flex-1 sm:flex-none">
                   <Button type="button" variant="outline" className="w-full">
                     Cancel
                   </Button>
                 </Link>
-                <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+                <Button type="submit" disabled={isSubmitting} className="flex-1 sm:flex-none">
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Entry
                 </Button>

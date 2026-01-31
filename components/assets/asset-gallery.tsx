@@ -7,11 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Image as ImageIcon, Plus, Upload } from "lucide-react";
+import { Image as ImageIcon, Plus, Upload, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 import { UploadZone } from "./upload-zone";
 import type { AssetMetadata } from "@/types";
 
@@ -25,21 +28,47 @@ export function AssetGallery({
   projectSlug,
 }: AssetGalleryProps) {
   const [showUpload, setShowUpload] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<(AssetMetadata & { url: string }) | null>(
-    null
-  );
+  const [selectedAsset, setSelectedAsset] = useState<(AssetMetadata & { url: string }) | null>(null);
+  const [deleteAsset, setDeleteAsset] = useState<(AssetMetadata & { url: string }) | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!deleteAsset) return;
+
+    setIsDeleting(true);
+    try {
+      const res = await fetch(
+        `/api/assets?project=${projectSlug}&filename=${encodeURIComponent(deleteAsset.filename)}`,
+        { method: "DELETE" }
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to delete asset");
+      }
+
+      toast.success("Asset deleted");
+      setDeleteAsset(null);
+      setSelectedAsset(null);
+      window.location.reload();
+    } catch (error) {
+      console.error("Error deleting asset:", error);
+      toast.error("Failed to delete asset");
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   if (assets.length === 0 && !showUpload) {
     return (
       <Card>
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <ImageIcon className="h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No assets yet</h3>
-          <p className="text-muted-foreground text-center mb-4">
-            Upload screenshots, diagrams, and other visuals for your case study.
+        <CardContent className="flex flex-col items-center justify-center py-8">
+          <ImageIcon className="h-10 w-10 text-muted-foreground mb-3" />
+          <h3 className="text-base font-semibold mb-1">No assets yet</h3>
+          <p className="text-sm text-muted-foreground text-center mb-3">
+            Upload screenshots and visuals for your case study.
           </p>
-          <Button onClick={() => setShowUpload(true)}>
-            <Upload className="mr-2 h-4 w-4" />
+          <Button size="sm" onClick={() => setShowUpload(true)}>
+            <Upload className="mr-1.5 h-4 w-4" />
             Upload Assets
           </Button>
         </CardContent>
@@ -48,13 +77,12 @@ export function AssetGallery({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {showUpload && (
         <UploadZone
           projectSlug={projectSlug}
           onComplete={() => {
             setShowUpload(false);
-            // Refresh would happen via SWR revalidation in real implementation
             window.location.reload();
           }}
           onCancel={() => setShowUpload(false)}
@@ -62,13 +90,13 @@ export function AssetGallery({
       )}
 
       <div className="flex justify-end">
-        <Button variant="outline" onClick={() => setShowUpload(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Upload Asset
+        <Button variant="outline" size="sm" onClick={() => setShowUpload(true)}>
+          <Plus className="mr-1.5 h-4 w-4" />
+          Upload
         </Button>
       </div>
 
-      <div className="grid gap-3 grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid gap-2 grid-cols-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4">
         {assets.map((asset) => (
           <Card
             key={asset.filename}
@@ -85,20 +113,15 @@ export function AssetGallery({
                 />
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
                 </div>
               )}
             </div>
-            <CardContent className="p-2 sm:p-3">
-              <p className="text-sm font-medium truncate">{asset.filename}</p>
-              <div className="flex items-center justify-between mt-1">
-                <Badge variant="outline" className="text-xs">
-                  {asset.role}
-                </Badge>
-                <span className="text-xs text-muted-foreground">
-                  {format(new Date(asset.uploadedAt), "MMM d")}
-                </span>
-              </div>
+            <CardContent className="p-2">
+              <p className="text-xs font-medium truncate">{asset.suggestedName || asset.filename}</p>
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(asset.uploadedAt), "MMM d")}
+              </span>
             </CardContent>
           </Card>
         ))}
@@ -108,10 +131,10 @@ export function AssetGallery({
       <Dialog open={!!selectedAsset} onOpenChange={() => setSelectedAsset(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>{selectedAsset?.filename}</DialogTitle>
+            <DialogTitle className="text-base">{selectedAsset?.suggestedName || selectedAsset?.filename}</DialogTitle>
           </DialogHeader>
           {selectedAsset && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="aspect-video relative bg-muted rounded-lg overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -120,23 +143,57 @@ export function AssetGallery({
                   className="object-contain w-full h-full"
                 />
               </div>
-              <div className="space-y-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Badge>{selectedAsset.role}</Badge>
+                  <Badge variant="outline" className="text-xs">{selectedAsset.role}</Badge>
                   {selectedAsset.tags.map((tag) => (
-                    <Badge key={tag} variant="outline">
+                    <Badge key={tag} variant="outline" className="text-xs">
                       {tag}
                     </Badge>
                   ))}
                 </div>
-                {selectedAsset.altText && (
-                  <p className="text-sm text-muted-foreground">
-                    {selectedAsset.altText}
-                  </p>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-destructive"
+                  onClick={() => setDeleteAsset(selectedAsset)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1.5" />
+                  Delete
+                </Button>
               </div>
+              {selectedAsset.altText && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedAsset.altText}
+                </p>
+              )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteAsset} onOpenChange={() => setDeleteAsset(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete asset?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete &quot;{deleteAsset?.suggestedName || deleteAsset?.filename}&quot;.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteAsset(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
