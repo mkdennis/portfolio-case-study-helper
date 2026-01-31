@@ -1,48 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Plus, FolderOpen, Calendar, Clock } from "lucide-react";
+import { Plus, FolderOpen, Calendar, Clock, WifiOff } from "lucide-react";
 import { format } from "date-fns";
-import type { ProjectMetadata } from "@/types";
+import { useOfflineProjects } from "@/lib/offline/hooks";
 
 export default function DashboardPage() {
-  const [projects, setProjects] = useState<ProjectMetadata[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { projects, isLoading, isOffline, isUsingCache, error } = useOfflineProjects();
 
-  useEffect(() => {
-    async function fetchProjects() {
-      try {
-        const res = await fetch("/api/projects");
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to fetch projects");
-        }
-
-        setProjects(data.projects || []);
-      } catch (err) {
-        console.error("Error fetching projects:", err);
-        setError(err instanceof Error ? err.message : "Failed to fetch projects");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchProjects();
-  }, []);
-
-  if (error) {
+  if (error && !isUsingCache) {
     return (
       <main className="container py-6 sm:py-8">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="text-destructive mb-4">{error}</p>
+            <p className="text-destructive mb-4">{error.message}</p>
             <p className="text-muted-foreground text-sm text-center">
               Check that GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO are set in .env.local
             </p>
@@ -54,6 +29,14 @@ export default function DashboardPage() {
 
   return (
     <main className="container py-6 sm:py-8">
+      {/* Offline indicator */}
+      {isOffline && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-400 px-3 py-2 rounded-lg">
+          <WifiOff className="h-4 w-4" />
+          <span>You&apos;re offline. Showing cached data.</span>
+        </div>
+      )}
+
       {/* Header section - stacks on mobile */}
       <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between sm:mb-8">
         <div>
@@ -76,7 +59,7 @@ export default function DashboardPage() {
             <Skeleton key={i} className="h-48" />
           ))}
         </div>
-      ) : projects.length === 0 ? (
+      ) : !projects || projects.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />

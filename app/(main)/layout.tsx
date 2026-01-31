@@ -1,5 +1,6 @@
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
+import { OfflineIndicator } from "@/components/offline/offline-indicator";
 
 export default function MainLayout({
   children,
@@ -11,6 +12,7 @@ export default function MainLayout({
       <Header />
       {children}
       <MobileNav />
+      <OfflineIndicator />
     </div>
   );
 }
