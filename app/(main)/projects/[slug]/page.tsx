@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
-import { useRouter } from "next/navigation";
+import { useState, use } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,22 +21,13 @@ import {
   PenLine,
   Sparkles,
   Layers,
+  WifiOff,
 } from "lucide-react";
 import { format } from "date-fns";
-import type { ProjectMetadata, JournalEntry, AssetMetadata, CaseStudySection } from "@/types";
+import type { CaseStudySection, JournalEntry, AssetMetadata } from "@/types";
 import { CASE_STUDY_SECTIONS, TRACKABLE_SECTIONS } from "@/types";
 import { SectionCard } from "@/components/case-study/section-card";
-
-interface ProjectData {
-  project: ProjectMetadata;
-  entries: JournalEntry[];
-  assets: Array<AssetMetadata & { url: string }>;
-  stats: {
-    entriesCount: number;
-    assetsCount: number;
-    lastUpdated: string;
-  };
-}
+import { useOfflineProject } from "@/lib/offline/hooks";
 
 export default function ProjectPage({
   params,
@@ -45,10 +35,7 @@ export default function ProjectPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
-  const router = useRouter();
-  const [projectData, setProjectData] = useState<ProjectData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { projectData, isLoading, isOffline, isUsingCache, error } = useOfflineProject(slug);
   const [completedSections, setCompletedSections] = useState<Set<CaseStudySection>>(new Set());
 
   const toggleSectionComplete = (section: CaseStudySection) => {
@@ -65,32 +52,6 @@ export default function ProjectPage({
 
   const completedCount = TRACKABLE_SECTIONS.filter(s => completedSections.has(s)).length;
 
-  useEffect(() => {
-    async function fetchProject() {
-      try {
-        const res = await fetch(`/api/projects/${slug}`);
-
-        if (!res.ok) {
-          if (res.status === 404) {
-            router.push("/dashboard");
-            return;
-          }
-          throw new Error("Failed to fetch project");
-        }
-
-        const data = await res.json();
-        setProjectData(data);
-      } catch (err) {
-        console.error("Error fetching project:", err);
-        setError(err instanceof Error ? err.message : "Failed to fetch project");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchProject();
-  }, [slug, router]);
-
   if (isLoading) {
     return (
       <main className="container py-6 sm:py-8">
@@ -105,12 +66,12 @@ export default function ProjectPage({
     );
   }
 
-  if (error) {
+  if (error && !isUsingCache) {
     return (
       <main className="container py-6 sm:py-8">
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-destructive">{error}</p>
+            <p className="text-destructive">{error.message}</p>
           </CardContent>
         </Card>
       </main>
@@ -145,6 +106,14 @@ export default function ProjectPage({
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Dashboard
       </Link>
+
+      {/* Offline indicator */}
+      {isOffline && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-950 dark:text-amber-400 px-3 py-2 rounded-lg">
+          <WifiOff className="h-4 w-4" />
+          <span>You&apos;re offline. Showing cached data.</span>
+        </div>
+      )}
 
       {/* Project Header */}
       <div className="flex flex-col gap-4 mb-6 sm:mb-8">
